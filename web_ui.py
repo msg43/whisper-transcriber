@@ -1,83 +1,54 @@
-import os
+from flask import Flask, request, render_template_string, jsonify
 import subprocess
-import sys
-import json
+import os
 
-VERSION_FILE = "VERSION"
+app = Flask(__name__)
+VERSION = "v1.2.0"
 
+HTML_TEMPLATE = """
+<!doctype html>
+<title>Whisper Transcriber</title>
+<h2>🎤 Whisper Playlist Transcriber</h2>
+<form method="POST">
+    <label>Playlist URL:</label><br>
+    <input type="text" name="url" style="width: 400px" required><br><br>
+    
+    <label>Force Reprocess?</label>
+    <input type="checkbox" name="force"><br><br>
 
-def get_version():
-    if os.path.exists(VERSION_FILE):
-        with open(VERSION_FILE) as f:
-            return f.read().strip()
-    return "unknown"
+    <label>Worker Count:</label>
+    <input type="number" name="workers" value="4" min="1" max="16"><br><br>
 
+    <input type="submit" value="Transcribe">
+</form>
 
-def detect_backend():
-    return os.environ.get("WHISPER_BACKEND", "torch")
+{% if status %}
+<hr>
+<h3>🚀 Status:</h3>
+<pre>{{ status }}</pre>
+{% endif %}
+"""
 
+@app.route("/", methods=["GET", "POST"])
+def index():
+    status = ""
+    if request.method == "POST":
+        url = request.form["url"]
+        force = "--force" if "force" in request.form else ""
+        workers = request.form.get("workers", "4")
 
-def detect_workers():
-    try:
-        import multiprocessing
-        return multiprocessing.cpu_count()
-    except:
-        return 4
+        os.environ["PLAYLIST_URL"] = url
+        cmd = f"python3 transcribe.py --workers {workers} {force}"
+        try:
+            status = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, universal_newlines=True)
+        except subprocess.CalledProcessError as e:
+            status = f"Error: {e.output}"
 
+    return render_template_string(HTML_TEMPLATE, status=status)
 
-def run_web():
-    subprocess.run(["python3", "web_ui.py"])
-
-
-def run_transcriber(playlist_url, force=False, workers=None):
-    cmd = ["python3", "transcribe.py"]
-    if force:
-        cmd.append("--force")
-    if workers:
-        cmd += ["--workers", str(workers)]
-    os.environ["PLAYLIST_URL"] = playlist_url
-    subprocess.run(cmd)
-
-
-def main():
-    version = get_version()
-    backend = detect_backend()
-    workers = detect_workers()
-
-    args = sys.argv[1:]
-
-    if not args:
-        print("\nWhisper Transcriber CLI (non-interactive sandbox mode)\n")
-        print("Usage:")
-        print("  python main.py web")
-        print("  python main.py transcribe <playlist_url> [--force] [--workers N]")
-        print("  python main.py version")
-        print("  python main.py help")
-        return
-
-    if args[0] == "web":
-        run_web()
-    elif args[0] == "transcribe" and len(args) >= 2:
-        playlist_url = args[1]
-        force = "--force" in args
-        if "--workers" in args:
-            idx = args.index("--workers")
-            try:
-                workers = int(args[idx + 1])
-            except (IndexError, ValueError):
-                print("Invalid worker count. Using default.")
-                workers = detect_workers()
-        run_transcriber(playlist_url, force=force, workers=workers)
-    elif args[0] == "version":
-        print(f"📦 Version: {version}\n🧠 Backend: {backend}\n⚙️ Workers: {workers}")
-    elif args[0] == "help":
-        print("\nWhisper Transcriber Usage:")
-        print("  python main.py web")
-        print("  python main.py transcribe <playlist_url> [--force] [--workers N]")
-        print("  python main.py version")
-    else:
-        print("❌ Invalid command. Use `python main.py help` for usage info.")
-
+@app.route("/version")
+def version():
+    return jsonify({"version": VERSION})
 
 if __name__ == "__main__":
-    main()
+    app.run(host="0.0.0.0", port=5000, debug=False)
