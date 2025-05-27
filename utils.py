@@ -6,7 +6,7 @@ from urllib.parse import urlparse, parse_qs
 
 AUDIO_DIR = "audio"
 WHISPER_CPP_PATH = os.path.expanduser("~/whisper.cpp/build/bin")  # Path to whisper.cpp folder
-WHISPER_MODEL = "models/ggml-base.en.bin"               # Relative to WHISPER_CPP_PATH
+WHISPER_MODEL = "../models/ggml-medium.en.bin"               # Relative to WHISPER_CPP_PATH
 
 def slugify(text):
     return re.sub(r'[^a-zA-Z0-9_-]', '_', text.strip().lower())
