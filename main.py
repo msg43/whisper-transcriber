@@ -1,7 +1,6 @@
 import os
 import subprocess
 import sys
-import json
 
 VERSION_FILE = "VERSION"
 
@@ -22,6 +21,7 @@ def detect_workers():
         return 4
 
 def run_web():
+    print("🚀 Launching web interface...")
     subprocess.run(["python3", "web_ui.py"])
 
 def run_transcriber(playlist_url, force=False, workers=None):
