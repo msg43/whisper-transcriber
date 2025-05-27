@@ -37,12 +37,11 @@ def index():
         force = "--force" if "force" in request.form else ""
         workers = request.form.get("workers", "4")
 
-        os.environ["PLAYLIST_URL"] = url
         cmd = f"python3 transcribe.py --playlist \"{url}\" --workers {workers} {force}"
         try:
             status = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, universal_newlines=True)
         except subprocess.CalledProcessError as e:
-            status = f"Error: {e.output}"
+            status = f"❌ Error: {e.output}"
 
     return render_template_string(HTML_TEMPLATE, status=status)
 
