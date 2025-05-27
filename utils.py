@@ -5,7 +5,7 @@ import subprocess
 from urllib.parse import urlparse, parse_qs
 
 AUDIO_DIR = "audio"
-WHISPER_CPP_PATH = os.path.expanduser("~/whisper.cpp")  # Path to whisper.cpp folder
+WHISPER_CPP_PATH = os.path.expanduser("~/whisper.cpp/build/bin")  # Path to whisper.cpp folder
 WHISPER_MODEL = "models/ggml-base.en.bin"               # Relative to WHISPER_CPP_PATH
 
 def slugify(text):
