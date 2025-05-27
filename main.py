@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import json
 
 VERSION_FILE = "VERSION"
 
@@ -37,39 +38,32 @@ def main():
     backend = detect_backend()
     workers = detect_workers()
 
-    args = sys.argv[1:]
+    while True:
+        print("\n🎛️ Whisper Transcriber Menu")
+        print("----------------------------")
+        print("1. Launch Web Interface")
+        print("2. Run Transcription from Playlist URL")
+        print("3. Force Reprocess Playlist")
+        print("4. View Current Version")
+        print("5. Exit")
 
-    if not args:
-        print("\nWhisper Transcriber CLI")
-        print("Usage:")
-        print("  python main.py web")
-        print("  python main.py transcribe <playlist_url> [--force] [--workers N]")
-        print("  python main.py version")
-        print("  python main.py help")
-        return
+        choice = input("Choose an option (1–5): ").strip()
 
-    if args[0] == "web":
-        run_web()
-    elif args[0] == "transcribe" and len(args) >= 2:
-        playlist_url = args[1]
-        force = "--force" in args
-        if "--workers" in args:
-            try:
-                idx = args.index("--workers")
-                workers = int(args[idx + 1])
-            except (IndexError, ValueError):
-                print("⚠️ Invalid or missing worker count. Using default.")
-                workers = detect_workers()
-        run_transcriber(playlist_url, force=force, workers=workers)
-    elif args[0] == "version":
-        print(f"\n📦 Version: {version}\n🧠 Backend: {backend}\n⚙️ Workers: {workers}")
-    elif args[0] == "help":
-        print("Usage:")
-        print("  python main.py web")
-        print("  python main.py transcribe <playlist_url> [--force] [--workers N]")
-        print("  python main.py version")
-    else:
-        print("❌ Invalid command. Use `python main.py help` for usage.")
+        if choice == "1":
+            run_web()
+        elif choice == "2":
+            url = input("Enter YouTube Playlist URL: ").strip()
+            run_transcriber(url, force=False, workers=workers)
+        elif choice == "3":
+            url = input("Enter YouTube Playlist URL: ").strip()
+            run_transcriber(url, force=True, workers=workers)
+        elif choice == "4":
+            print(f"\n📦 Version: {version}\n🧠 Backend: {backend}\n⚙️ Workers: {workers}")
+        elif choice == "5":
+            print("👋 Goodbye!")
+            break
+        else:
+            print("❌ Invalid selection. Please try again.")
 
 if __name__ == "__main__":
     main()
