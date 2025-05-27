@@ -1,10 +1,12 @@
 import os
 import re
 import yt_dlp
+import subprocess
 from urllib.parse import urlparse, parse_qs
-from whisper import load_model
 
 AUDIO_DIR = "audio"
+WHISPER_CPP_PATH = os.path.expanduser("~/whisper.cpp")  # Path to whisper.cpp folder
+WHISPER_MODEL = "models/ggml-base.en.bin"               # Relative to WHISPER_CPP_PATH
 
 def slugify(text):
     return re.sub(r'[^a-zA-Z0-9_-]', '_', text.strip().lower())
@@ -24,7 +26,7 @@ def get_playlist_videos(playlist_url):
     ydl_opts = {
         "quiet": True,
         "extract_flat": True,
-        "force_generic_extractor": False  # ✅ fix: use proper extractor
+        "force_generic_extractor": False  # ✅ proper extractor
     }
     videos = []
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -39,7 +41,7 @@ def get_playlist_videos(playlist_url):
     return videos
 
 def download_audio(video_url, output_path):
-    """Download the audio of a single YouTube video as WAV."""
+    """Download audio from a YouTube video using yt-dlp + ffmpeg."""
     ydl_opts = {
         "format": "bestaudio/best",
         "outtmpl": os.path.join(output_path, "%(id)s.%(ext)s"),
@@ -55,24 +57,18 @@ def download_audio(video_url, output_path):
         return info["id"], os.path.join(output_path, f"{info['id']}.wav")
 
 def transcribe_video(video_url, output_dir, audio_dir):
-    """Download and transcribe a video using Whisper."""
+    """Transcribe a YouTube video using whisper.cpp."""
     video_id, audio_path = download_audio(video_url, audio_dir)
-    model = load_model("base")
 
-    print(f"🧠 Transcribing {video_id}...")
-    result = model.transcribe(audio_path)
+    output_base = os.path.join(output_dir, video_id)
+    os.makedirs(output_dir, exist_ok=True)
 
-    # Save multiple formats
-    base = os.path.join(output_dir, video_id)
-    with open(base + ".txt", "w", encoding="utf-8") as f:
-        f.write(result["text"])
-
-    with open(base + ".json", "w", encoding="utf-8") as f:
-        import json
-        json.dump(result, f, indent=2)
-
-    with open(base + ".srt", "w", encoding="utf-8") as f:
-        f.write(result["segments"][0].get("text", ""))  # Simplified
-
-    with open(base + ".vtt", "w", encoding="utf-8") as f:
-        f.write("WEBVTT\n\n" + result["segments"][0].get("text", ""))  # Simplified
+    print(f"🎙️ Transcribing {video_id} using whisper.cpp...")
+    cmd = [
+        os.path.join(WHISPER_CPP_PATH, "main"),
+        "-m", os.path.join(WHISPER_CPP_PATH, WHISPER_MODEL),
+        "-f", audio_path,
+        "-of", output_base,
+        "-otxt", "-osrt", "-ovtt"
+    ]
+    subprocess.run(cmd, check=True)
