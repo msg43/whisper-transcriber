@@ -1,9 +1,8 @@
 import os
 import re
 import yt_dlp
-import subprocess
 from urllib.parse import urlparse, parse_qs
-from whisper import load_model, transcribe
+from whisper import load_model
 
 AUDIO_DIR = "audio"
 
@@ -25,7 +24,7 @@ def get_playlist_videos(playlist_url):
     ydl_opts = {
         "quiet": True,
         "extract_flat": True,
-        "force_generic_extractor": True,
+        "force_generic_extractor": False  # ✅ fix: use proper extractor
     }
     videos = []
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -33,8 +32,10 @@ def get_playlist_videos(playlist_url):
         if "entries" in info:
             for entry in info["entries"]:
                 if entry and "url" in entry and "title" in entry:
-                    full_url = f"https://www.youtube.com/watch?v={entry['url']}"
-                    videos.append((full_url, entry["title"]))
+                    url = entry["url"]
+                    if not url.startswith("http"):
+                        url = f"https://www.youtube.com/watch?v={url}"
+                    videos.append((url, entry["title"]))
     return videos
 
 def download_audio(video_url, output_path):
